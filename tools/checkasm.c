@@ -121,7 +121,7 @@ static inline uint32_t read_time(void)
     uint32_t id = 0;
     asm volatile( "rdtimel.w  %0, %1" : "=r"(a), "=r"(id) :: "memory" );
 #elif ARCH_RISCV64
-    asm volatile( "rdcycle %0" : "=r"(a) :: "memory" );
+    asm volatile( "rdtime %0" : "=r"(a) :: "memory" );
 #endif
     return a;
 }
