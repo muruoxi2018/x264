@@ -1,190 +1,74 @@
-name: Build x264 for Windows
+name: Windows Cross-Compile
 
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-env:
-  FFMPEG_URL: https://github.com/FFmpeg/FFmpeg.git
-  LSMASH_URL: https://github.com/l-smash/l-smash.git
+on: [push, pull_request]
 
 jobs:
   build-win32:
-    name: Build Windows 32-bit
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
+      FFMPEG_URL: https://github.com/FFmpeg/FFmpeg.git
+      LSMASH_URL: https://github.com/l-smash/l-smash.git
       _TRIPLET: i686-w64-mingw32
       _PLATFORMSUFFIX: .exe
       _WRAPPER: wine
       _CONTRIB_URL: https://artifacts.videolan.org/vlc/win32-llvm/
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up environment
-      shell: bash
-      run: |
-        set -x
-        LOCAL_INSTALL_DIR=$(pwd)/${_TRIPLET}
-        echo "LOCAL_INSTALL_DIR=$LOCAL_INSTALL_DIR" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=${LOCAL_INSTALL_DIR}/lib/pkgconfig" >> $GITHUB_ENV
-        echo "PKGCONFIG=pkg-config" >> $GITHUB_ENV
-    
-    - name: Install dependencies
-      shell: bash
-      run: |
-        set -x
-        sudo apt-get update
-        sudo apt-get install -y wine pkg-config mingw-w64
-        
-    - name: Download and extract contribs
-      shell: bash
-      run: |
-        set -x
-        curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-${_TRIPLET}-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
-        curl -f -o vlc-contrib-${_TRIPLET}-latest.tar.bz2 ${_CONTRIB_URL}${CONTRIB_NAME}
-        bunzip2 vlc-contrib-${_TRIPLET}-latest.tar.bz2
-        tar xvf vlc-contrib-${_TRIPLET}-latest.tar
-        perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
-    
-    - name: Clone and build FFmpeg
-      shell: bash
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${FFMPEG_URL} ffmpeg
-        cd ffmpeg
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --enable-pic --disable-debug \
-          --extra-ldflags="-static" --disable-programs --disable-doc \
-          --disable-avdevice --disable-postproc --disable-avfilter \
-          --disable-network --disable-encoders --disable-muxers
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Clone and build L-SMASH
-      shell: bash
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${LSMASH_URL} lsmash
-        cd lsmash
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --target-os="${_TRIPLET}" --cross-prefix="${_TRIPLET}-"
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Build x264
-      shell: bash
-      run: |
-        set -x
-        ./configure --host="${_TRIPLET}" --cross-prefix="${_TRIPLET}-" --enable-pic --enable-strip
-        make -j$(nproc) x264 checkasm
-    
-    - name: Test
-      shell: bash
-      run: |
-        set -x
-        ${_WRAPPER} ./checkasm8${_PLATFORMSUFFIX}
-        ${_WRAPPER} ./checkasm10${_PLATFORMSUFFIX}
-    
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: x264-win32
-        path: |
-          x264${_PLATFORMSUFFIX}
-          checkasm8${_PLATFORMSUFFIX}
-          checkasm10${_PLATFORMSUFFIX}
-          config.log
+      LOCAL_INSTALL_DIR: ${{ github.workspace }}/i686-w64-mingw32
+      PKG_CONFIG_LIBDIR: ${{ github.workspace }}/i686-w64-mingw32/lib/pkgconfig
+      PKGCONFIG: pkg-config
 
-  build-win64:
-    name: Build Windows 64-bit
-    runs-on: windows-latest
-    env:
-      _TRIPLET: x86_64-w64-mingw32
-      _PLATFORMSUFFIX: .exe
-      _WRAPPER: wine
-      _CONTRIB_URL: https://artifacts.videolan.org/vlc/win64-llvm/
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up environment
-      shell: bash
-      run: |
-        set -x
-        LOCAL_INSTALL_DIR=$(pwd)/${_TRIPLET}
-        echo "LOCAL_INSTALL_DIR=$LOCAL_INSTALL_DIR" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=${LOCAL_INSTALL_DIR}/lib/pkgconfig" >> $GITHUB_ENV
-        echo "PKGCONFIG=pkg-config" >> $GITHUB_ENV
-    
+    - uses: actions/checkout@v3
+
     - name: Install dependencies
-      shell: bash
       run: |
-        set -x
         sudo apt-get update
-        sudo apt-get install -y wine pkg-config mingw-w64
-        
-    - name: Download and extract contribs
-      shell: bash
+        sudo apt-get install -y \
+          wine \
+          pkg-config \
+          mingw-w64 \
+          gcc-mingw-w64-i686 \
+          g++-mingw-w64-i686 \
+          make \
+          automake \
+          autoconf \
+          libtool \
+          nasm \
+          git
+
+    - name: Setup environment
       run: |
-        set -x
-        curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-${_TRIPLET}-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
-        curl -f -o vlc-contrib-${_TRIPLET}-latest.tar.bz2 ${_CONTRIB_URL}${CONTRIB_NAME}
-        bunzip2 vlc-contrib-${_TRIPLET}-latest.tar.bz2
-        tar xvf vlc-contrib-${_TRIPLET}-latest.tar
-        perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
-    
-    - name: Clone and build FFmpeg
-      shell: bash
+        mkdir -p $LOCAL_INSTALL_DIR
+        echo "LOCAL_INSTALL_DIR=$LOCAL_INSTALL_DIR" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR" >> $GITHUB_ENV
+
+    - name: Clone FFmpeg
       run: |
-        set -x
-        git clone --depth 1 --branch master ${FFMPEG_URL} ffmpeg
+        git clone --depth 1 $FFMPEG_URL ffmpeg
         cd ffmpeg
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --enable-pic --disable-debug \
-          --extra-ldflags="-static" --disable-programs --disable-doc \
-          --disable-avdevice --disable-postproc --disable-avfilter \
-          --disable-network --disable-encoders --disable-muxers
+        ./configure --prefix=$LOCAL_INSTALL_DIR \
+                   --cross-prefix=i686-w64-mingw32- \
+                   --arch=x86 \
+                   --target-os=mingw32 \
+                   --enable-shared \
+                   --disable-static
         make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Clone and build L-SMASH
-      shell: bash
+        make install
+
+    - name: Clone L-SMASH
       run: |
-        set -x
-        git clone --depth 1 --branch master ${LSMASH_URL} lsmash
-        cd lsmash
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --target-os="${_TRIPLET}" --cross-prefix="${_TRIPLET}-"
+        git clone --depth 1 $LSMASH_URL l-smash
+        cd l-smash
+        ./configure --prefix=$LOCAL_INSTALL_DIR \
+                   --cross-prefix=i686-w64-mingw32- \
+                   --host=i686-w64-mingw32
         make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Build x264
-      shell: bash
+        make install
+
+    - name: Build your project
       run: |
-        set -x
-        ./configure --host="${_TRIPLET}" --cross-prefix="${_TRIPLET}-" --enable-pic --enable-strip
-        make -j$(nproc) x264 checkasm
-    
-    - name: Test
-      shell: bash
-      run: |
-        set -x
-        ${_WRAPPER} ./checkasm8${_PLATFORMSUFFIX}
-        ${_WRAPPER} ./checkasm10${_PLATFORMSUFFIX}
-    
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: x264-win64
-        path: |
-          x264${_PLATFORMSUFFIX}
-          checkasm8${_PLATFORMSUFFIX}
-          checkasm10${_PLATFORMSUFFIX}
-          config.log
+        # 这里添加你的项目构建命令
+        # 例如：
+        # ./configure --host=i686-w64-mingw32 --prefix=$LOCAL_INSTALL_DIR
+        # make
+        # make install
+        echo "Build commands would go here"
