@@ -115,10 +115,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: x264-win32-binaries
-        path: |
-          ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX}
-          ${LOCAL_INSTALL_DIR}/lib/libx264.a
-          ${LOCAL_INSTALL_DIR}/include/x264*.h
+        path: |  
+          ${{ env.LOCAL_INSTALL_DIR }}/bin/x264${{ env._PLATFORMSUFFIX }}
+          ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
+          ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
         retention-days: 5
 
   build-win64:
@@ -225,7 +225,7 @@ jobs:
       with:
         name: x264-win64-binaries
         path: |
-          ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX}
-          ${LOCAL_INSTALL_DIR}/lib/libx264.a
-          ${LOCAL_INSTALL_DIR}/include/x264*.h
+          ${{ env.LOCAL_INSTALL_DIR }}/bin/x264${{ env._PLATFORMSUFFIX }}
+          ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
+          ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
         retention-days: 5
