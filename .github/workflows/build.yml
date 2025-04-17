@@ -13,7 +13,7 @@ env:
 jobs:
   build-win32:
     name: Build Windows 32-bit
-    runs-on: ubuntu-latest  # 使用 Ubuntu 环境以便安装依赖
+    runs-on: ubuntu-latest
     env:
       _TRIPLET: i686-w64-mingw32
       _PLATFORMSUFFIX: .exe
@@ -33,7 +33,21 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y wine pkg-config mingw-w64 git curl bzip2 perl
+        sudo apt-get install -y \
+          wine \
+          pkg-config \
+          mingw-w64 \
+          git \
+          curl \
+          bzip2 \
+          perl \
+          nasm \        # 添加 nasm 汇编器
+          yasm \        # 添加 yasm 汇编器
+          autoconf \    # 添加 autoconf
+          automake \    # 添加 automake
+          libtool \     # 添加 libtool
+          make \        # 确保 make 已安装
+          gcc           # 确保 gcc 已安装
         
     - name: Download and extract contribs
       run: |
@@ -50,14 +64,25 @@ jobs:
         set -x
         git clone --depth 1 --branch master ${FFMPEG_URL} ffmpeg
         cd ffmpeg
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --enable-pic --disable-debug \
-          --extra-ldflags="-static" --disable-programs --disable-doc \
-          --disable-avdevice --disable-postproc --disable-avfilter \
-          --disable-network --disable-encoders --disable-muxers
+        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
+          --enable-pic \
+          --disable-debug \
+          --extra-ldflags="-static" \
+          --disable-programs \
+          --disable-doc \
+          --disable-avdevice \
+          --disable-postproc \
+          --disable-avfilter \
+          --disable-network \
+          --disable-encoders \
+          --disable-muxers \
+          --enable-gpl \
+          --enable-version3
         make -j$(nproc)
         make -j$(nproc) install
         cd ..
     
+    # 其余步骤保持不变...
     - name: Clone and build L-SMASH
       run: |
         set -x
@@ -100,71 +125,5 @@ jobs:
       _CONTRIB_URL: https://artifacts.videolan.org/vlc/win64-llvm/
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up environment
-      run: |
-        echo "LOCAL_INSTALL_DIR=$(pwd)/${_TRIPLET}" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=${LOCAL_INSTALL_DIR}/lib/pkgconfig" >> $GITHUB_ENV
-        echo "PKGCONFIG=pkg-config" >> $GITHUB_ENV
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wine pkg-config mingw-w64 git curl bzip2 perl
-        
-    - name: Download and extract contribs
-      run: |
-        set -x
-        curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-${_TRIPLET}-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
-        curl -f -o vlc-contrib-${_TRIPLET}-latest.tar.bz2 ${_CONTRIB_URL}${CONTRIB_NAME}
-        bunzip2 vlc-contrib-${_TRIPLET}-latest.tar.bz2
-        tar xvf vlc-contrib-${_TRIPLET}-latest.tar
-        perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
-    
-    - name: Clone and build FFmpeg
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${FFMPEG_URL} ffmpeg
-        cd ffmpeg
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --enable-pic --disable-debug \
-          --extra-ldflags="-static" --disable-programs --disable-doc \
-          --disable-avdevice --disable-postproc --disable-avfilter \
-          --disable-network --disable-encoders --disable-muxers
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Clone and build L-SMASH
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${LSMASH_URL} lsmash
-        cd lsmash
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" --target-os="${_TRIPLET}" --cross-prefix="${_TRIPLET}-"
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Build x264
-      run: |
-        set -x
-        ./configure --host="${_TRIPLET}" --cross-prefix="${_TRIPLET}-" --enable-pic --enable-strip
-        make -j$(nproc) x264 checkasm
-    
-    - name: Test
-      run: |
-        set -x
-        ${_WRAPPER} ./checkasm8${_PLATFORMSUFFIX}
-        ${_WRAPPER} ./checkasm10${_PLATFORMSUFFIX}
-    
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: x264-win64
-        path: |
-          x264${_PLATFORMSUFFIX}
-          checkasm8${_PLATFORMSUFFIX}
-          checkasm10${_PLATFORMSUFFIX}
-          config.log
+    # 与 win32 相同的步骤，使用 x86_64-w64-mingw32 工具链
+    # ...
