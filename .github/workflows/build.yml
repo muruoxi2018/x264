@@ -6,7 +6,7 @@ on:
     branches: [master, stable]
 
 env:
-  FFMPEG_URL: https://git.ffmpeg.org/ffmpeg.git
+  FFMPEG_URL: https://github.com/FFmpeg/FFmpeg.git
   CONTRIB_URL: https://code.videolan.org/videolan/x264-contrib.git
 
 jobs:
