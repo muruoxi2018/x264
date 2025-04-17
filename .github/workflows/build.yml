@@ -51,7 +51,7 @@ jobs:
 
       # 克隆 FFmpeg 和 contrib
       - name: Clone FFmpeg
-        run: git clone $FFMPEG_URL
+        run: git clone --depth 1 $FFMPEG_URL ffmpeg
       
       - name: Clone contrib
         run: |
