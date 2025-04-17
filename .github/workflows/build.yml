@@ -64,11 +64,26 @@ jobs:
         make -j$(nproc)
         make install
 
-    - name: Build your project
+    - name: Build x264
+      shell: bash
       run: |
-        # 这里添加你的项目构建命令
-        # 例如：
-        # ./configure --host=i686-w64-mingw32 --prefix=$LOCAL_INSTALL_DIR
-        # make
-        # make install
-        echo "Build commands would go here"
+        set -x
+        ./configure --host="${_TRIPLET}" --cross-prefix="${_TRIPLET}-" --enable-pic --enable-strip
+        make -j$(nproc) x264 checkasm
+    
+    - name: Test
+      shell: bash
+      run: |
+        set -x
+        ${_WRAPPER} ./checkasm8${_PLATFORMSUFFIX}
+        ${_WRAPPER} ./checkasm10${_PLATFORMSUFFIX}
+    
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: x264-win64
+        path: |
+          x264${_PLATFORMSUFFIX}
+          checkasm8${_PLATFORMSUFFIX}
+          checkasm10${_PLATFORMSUFFIX}
+          config.log
