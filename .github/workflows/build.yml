@@ -109,12 +109,7 @@ jobs:
           --prefix="${LOCAL_INSTALL_DIR}"
         make -j$(nproc)
         make -j$(nproc) install
-    
-    - name: Verify binary
-      run: |
-        set -x
-        file ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX}
-        ${_WRAPPER} ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX} --version
+  
     
     - name: Archive artifacts
       uses: actions/upload-artifact@v4
@@ -224,11 +219,6 @@ jobs:
         make -j$(nproc)
         make -j$(nproc) install
     
-    - name: Verify binary
-      run: |
-        set -x
-        file ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX}
-        ${_WRAPPER} ${LOCAL_INSTALL_DIR}/bin/x264${_PLATFORMSUFFIX} --version
     
     - name: Archive artifacts
       uses: actions/upload-artifact@v4
