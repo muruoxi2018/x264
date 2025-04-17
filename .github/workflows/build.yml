@@ -1,4 +1,4 @@
-name: x264 CI/CD Pipeline
+name: x264 Windows Build
 on:
   push:
     branches: [master, stable]
@@ -26,49 +26,28 @@ jobs:
     needs: setup
     strategy:
       matrix:
-        platform: [win32, win64, linux-x86_64, macos-x86_64, macos-arm64]
+        platform: [win32, win64]
         include:
           - platform: win32
-            os: windows-2022
             triplet: i686-w64-mingw32
             suffix: .exe
+            cross_prefix: i686-w64-mingw32-
           - platform: win64
-            os: windows-2022
             triplet: x86_64-w64-mingw32
             suffix: .exe
-          - platform: linux-x86_64
-            os: ubuntu-22.04
-            triplet: x86_64-pc-linux-gnu
-            suffix: ''
-          - platform: macos-x86_64
-            os: macos-12
-            triplet: x86_64-apple-darwin
-            suffix: ''
-          - platform: macos-arm64
-            os: macos-14
-            triplet: aarch64-apple-darwin
-            suffix: ''
+            cross_prefix: x86_64-w64-mingw32-
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2022
     env:
       _CONTRIB_DIR: contrib-${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
-      
-      # 安装依赖
-      - name: Install dependencies
-        if: runner.os != 'macOS'
-        run: |
-          sudo apt-get update && sudo apt-get install -y \
-            gcc clang make nasm yasm \
-            ${{ matrix.platform == 'win32' && 'mingw-w64' || '' }} \
-            ${{ matrix.platform == 'win64' && 'mingw-w64' || '' }}
 
-      # macOS 依赖
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS'
-        run: brew install nasm yasm
+      # 安装 MinGW 工具链
+      - name: Install MinGW
+        run: |
+          choco install -y mingw --version=12.2.0
 
       # 克隆 FFmpeg 和 contrib
       - name: Clone FFmpeg
@@ -84,26 +63,19 @@ jobs:
         run: |
           ./configure \
             --host=${{ matrix.triplet }} \
+            --cross-prefix=${{ matrix.cross_prefix }} \
             --enable-static \
-            --enable-pic \
-            ${{ matrix.platform == 'win32' && '--cross-prefix=i686-w64-mingw32-' || '' }} \
-            ${{ matrix.platform == 'win64' && '--cross-prefix=x86_64-w64-mingw32-' || '' }}
+            --enable-pic
 
       - name: Build
         run: make -j$(nproc)
 
-      # 测试（仅 Linux）
-      - name: Run tests
-        if: matrix.platform == 'linux-x86_64'
-        run: |
-          ./checkasm
-          ./x264 --version
-
       # 重命名并上传制品
       - name: Prepare artifact
-        run: mv x264 x264-${{ needs.setup.outputs.x264_version }}${{ matrix.suffix }}
+        run: |
+          mv x264 x264-${{ needs.setup.outputs.x264_version }}${{ matrix.suffix }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x264-${{ matrix.platform }}
           path: x264-${{ needs.setup.outputs.x264_version }}${{ matrix.suffix }}
@@ -113,7 +85,7 @@ jobs:
     needs: [setup, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
       
@@ -124,5 +96,3 @@ jobs:
           files: |
             artifacts/x264-win32/x264-*.exe
             artifacts/x264-win64/x264-*.exe
-            artifacts/x264-linux-x86_64/x264-*
-            artifacts/x264-macos-*/x264-*
