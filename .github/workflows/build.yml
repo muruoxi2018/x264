@@ -7,7 +7,7 @@ on:
 
 env:
   FFMPEG_URL: https://git.ffmpeg.org/ffmpeg.git
-  CONTRIB_URL: https://code.videolan.org/videolan/x264-ccontrib.git
+  CONTRIB_URL: https://code.videolan.org/videolan/x264-contrib.git
 
 jobs:
   setup:
@@ -27,26 +27,30 @@ jobs:
     strategy:
       matrix:
         platform: [win32, win64, linux-x86_64, macos-x86_64, macos-arm64]
-    runs-on: ${{ 
-      matrix.platform == 'win32' && 'windows-2022' ||
-      matrix.platform == 'win64' && 'windows-2022' ||
-      matrix.platform == 'macos-x86_64' && 'macos-12' ||
-      matrix.platform == 'macos-arm64' && 'macos-14' ||
-      'ubuntu-22.04'
-    }}
+        include:
+          - platform: win32
+            os: windows-2022
+            triplet: i686-w64-mingw32
+            suffix: .exe
+          - platform: win64
+            os: windows-2022
+            triplet: x86_64-w64-mingw32
+            suffix: .exe
+          - platform: linux-x86_64
+            os: ubuntu-22.04
+            triplet: x86_64-pc-linux-gnu
+            suffix: ''
+          - platform: macos-x86_64
+            os: macos-12
+            triplet: x86_64-apple-darwin
+            suffix: ''
+          - platform: macos-arm64
+            os: macos-14
+            triplet: aarch64-apple-darwin
+            suffix: ''
+
+    runs-on: ${{ matrix.os }}
     env:
-      _TRIPLET: ${{ 
-        matrix.platform == 'win32' && 'i686-w64-mingw32' ||
-        matrix.platform == 'win64' && 'x86_64-w64-mingw32' ||
-        matrix.platform == 'macos-x86_64' && 'x86_64-apple-darwin' ||
-        matrix.platform == 'macos-arm64' && 'aarch64-apple-darwin' ||
-        'x86_64-pc-linux-gnu'
-      }}
-      _PLATFORMSUFFIX: ${{ 
-        matrix.platform == 'win32' && '.exe' ||
-        matrix.platform == 'win64' && '.exe' || 
-        ''
-      }}
       _CONTRIB_DIR: contrib-${{ matrix.platform }}
 
     steps:
@@ -54,10 +58,17 @@ jobs:
       
       # 安装依赖
       - name: Install dependencies
+        if: runner.os != 'macOS'
         run: |
           sudo apt-get update && sudo apt-get install -y \
             gcc clang make nasm yasm \
-            ${{ matrix.platform == 'win*' && 'mingw-w64' || '' }}
+            ${{ matrix.platform == 'win32' && 'mingw-w64' || '' }} \
+            ${{ matrix.platform == 'win64' && 'mingw-w64' || '' }}
+
+      # macOS 依赖
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install nasm yasm
 
       # 克隆 FFmpeg 和 contrib
       - name: Clone FFmpeg
@@ -72,10 +83,11 @@ jobs:
       - name: Configure
         run: |
           ./configure \
-            --host=${{ env._TRIPLET }} \
+            --host=${{ matrix.triplet }} \
             --enable-static \
             --enable-pic \
-            ${{ matrix.platform == 'win*' && '--cross-prefix=${{ env._TRIPLET }}-' || '' }}
+            ${{ matrix.platform == 'win32' && '--cross-prefix=i686-w64-mingw32-' || '' }} \
+            ${{ matrix.platform == 'win64' && '--cross-prefix=x86_64-w64-mingw32-' || '' }}
 
       - name: Build
         run: make -j$(nproc)
@@ -89,12 +101,12 @@ jobs:
 
       # 重命名并上传制品
       - name: Prepare artifact
-        run: mv x264 x264-${{ needs.setup.outputs.x264_version }}${{ env._PLATFORMSUFFIX }}
+        run: mv x264 x264-${{ needs.setup.outputs.x264_version }}${{ matrix.suffix }}
 
       - uses: actions/upload-artifact@v3
         with:
           name: x264-${{ matrix.platform }}
-          path: x264-${{ needs.setup.outputs.x264_version }}${{ env._PLATFORMSUFFIX }}
+          path: x264-${{ needs.setup.outputs.x264_version }}${{ matrix.suffix }}
 
   release:
     if: github.ref == 'refs/heads/master'
