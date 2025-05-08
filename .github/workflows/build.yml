@@ -51,8 +51,7 @@ jobs:
           libtool \
           make \
           gcc \
-          zlib1g \
-          zlib1g-dev \
+          gpac \
           binutils-mingw-w64-i686
         
     - name: Download and extract contribs
@@ -83,20 +82,6 @@ jobs:
           --disable-muxers \
           --enable-gpl \
           --enable-version3
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-
-    - name: Clone and build gpac
-      run: |
-        set -x
-        git clone --depth 1 --branch master https://github.com/gpac/gpac.git gpac
-        cd gpac
-        export CFLAGS="-I/usr/include/i386-linux-gnu"
-        export LDFLAGS="-L/usr/lib/i386-linux-gnu"
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
-          --target-os="${_TRIPLET}" \
-          --cross-prefix="${_TRIPLET}-"
         make -j$(nproc)
         make -j$(nproc) install
         cd ..
