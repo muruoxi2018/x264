@@ -88,6 +88,20 @@ jobs:
         make -j$(nproc)
         make -j$(nproc) install
         cd ..
+
+    - name: Clone and build gpac
+      run: |
+        set -x
+        git clone --depth 1 --branch master https://github.com/gpac/gpac.git gpac
+        cd gpac
+        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
+          --target-os="${_TRIPLET}" \
+          --cross-prefix="${_TRIPLET}-" \
+          --disable-shared \
+          --enable-static
+        make -j$(nproc)
+        make -j$(nproc) install
+        cd ..
     
     - name: Clone and build L-SMASH
       run: |
@@ -198,6 +212,21 @@ jobs:
           --disable-muxers \
           --enable-gpl \
           --enable-version3
+        make -j$(nproc)
+        make -j$(nproc) install
+        cd ..
+
+        
+    - name: Clone and build gpac
+      run: |
+        set -x
+        git clone --depth 1 --branch master https://github.com/gpac/gpac.git gpac
+        cd gpac
+        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
+          --target-os="${_TRIPLET}" \
+          --cross-prefix="${_TRIPLET}-" \
+          --disable-shared \
+          --enable-static
         make -j$(nproc)
         make -j$(nproc) install
         cd ..
