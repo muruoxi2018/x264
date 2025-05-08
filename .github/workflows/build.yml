@@ -51,6 +51,7 @@ jobs:
           libtool \
           make \
           gcc \
+          zlib1g \
           zlib1g-dev \
           binutils-mingw-w64-i686
         
@@ -93,9 +94,7 @@ jobs:
         cd gpac
         ./configure --prefix="${LOCAL_INSTALL_DIR}" \
           --target-os="${_TRIPLET}" \
-          --cross-prefix="${_TRIPLET}-" \
-          --disable-shared \
-          --enable-static
+          --cross-prefix="${_TRIPLET}-"
         make -j$(nproc)
         make -j$(nproc) install
         cd ..
