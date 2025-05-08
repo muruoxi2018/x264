@@ -51,8 +51,8 @@ jobs:
           libtool \
           make \
           gcc \
-          zlib1g:i386 \
-          zlib1g-dev:i386 \
+          zlib1g \
+          zlib1g-dev \
           binutils-mingw-w64-i686
         
     - name: Download and extract contribs
@@ -92,6 +92,8 @@ jobs:
         set -x
         git clone --depth 1 --branch master https://github.com/gpac/gpac.git gpac
         cd gpac
+        export CFLAGS="-I/usr/include/i386-linux-gnu"
+        export LDFLAGS="-L/usr/lib/i386-linux-gnu"
         ./configure --prefix="${LOCAL_INSTALL_DIR}" \
           --target-os="${_TRIPLET}" \
           --cross-prefix="${_TRIPLET}-"
