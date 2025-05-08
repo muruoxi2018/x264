@@ -52,9 +52,6 @@ jobs:
           make \
           gcc \
           zlib1g-dev \
-          libavutil-dev \         # 安装 FFmpeg 相关库
-          libavformat-dev \
-          libavcodec-dev \
           binutils-mingw-w64-i686
         
     - name: Download and extract contribs
