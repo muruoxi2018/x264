@@ -105,8 +105,8 @@ jobs:
           --cross-prefix="${_TRIPLET}-" \
           --enable-pic \
           --enable-strip \
-          --prefix="${LOCAL_INSTALL_DIR} \
-          --bit-depth=8"
+          --prefix="${LOCAL_INSTALL_DIR}" \
+          --bit-depth=8
         make -j$(nproc)
         make -j$(nproc) install
   
@@ -214,8 +214,8 @@ jobs:
           --cross-prefix="${_TRIPLET}-" \
           --enable-pic \
           --enable-strip \
-          --prefix="${LOCAL_INSTALL_DIR} \
-          --bit-depth=8"
+          --prefix="${LOCAL_INSTALL_DIR}" \
+          --bit-depth=8
         make -j$(nproc)
         make -j$(nproc) install
     
