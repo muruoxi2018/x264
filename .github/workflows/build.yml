@@ -51,8 +51,8 @@ jobs:
           libtool \
           make \
           gcc \
-          zlib1g \
-          zlib1g-dev \
+          zlib1g:i386 \
+          zlib1g-dev:i386 \
           binutils-mingw-w64-i686
         
     - name: Download and extract contribs
