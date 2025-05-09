@@ -51,17 +51,22 @@ jobs:
           libtool \
           make \
           gcc \
-          gpac \
-          binutils-mingw-w64-i686
+          binutils-mingw-w64-i686 \
+          zlib1g-dev:i386
         
     - name: Download and extract contribs
       run: |
         set -x
         curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-${_TRIPLET}-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
-        curl -f -o vlc-contrib-${_TRIPLET}-latest.tar.bz2 ${_CONTRIB_URL}${CONTRIB_NAME}
-        bunzip2 vlc-contrib-${_TRIPLET}-latest.tar.bz2
-        tar xvf vlc-contrib-${_TRIPLET}-latest.tar
+        CONTRIB_NAME=$(sed -n -e 's@.*href="\(vlc-contrib-${_TRIPLET}-[^"]*\.tar\.bz2\)".*@\1@p' vlc-contrib.txt | sed -n -e '1p')
+        if [ -z "$CONTRIB_NAME" ]; then
+          echo "Error: Failed to extract contrib file name from vlc-contrib.txt"
+          exit 1
+        fi
+        curl -f -o ${CONTRIB_NAME} ${_CONTRIB_URL}${CONTRIB_NAME}
+        file ${CONTRIB_NAME}  # Debug: Check file type
+        bunzip2 ${CONTRIB_NAME}
+        tar xvf ${CONTRIB_NAME%.bz2}
         perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
     
     - name: Clone and build FFmpeg
@@ -76,6 +81,7 @@ jobs:
           --disable-programs \
           --disable-doc \
           --disable-avdevice \
+          --disable-postproc \
           --disable-avfilter \
           --disable-network \
           --disable-encoders \
@@ -125,127 +131,6 @@ jobs:
           ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
           ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
         retention-days: 5
-
-  build-win64:
-    name: Build Windows 64-bit
-    runs-on: ubuntu-24.04
-    env:
-      _TRIPLET: x86_64-w64-mingw32
-      _PLATFORMSUFFIX: .exe
-      _WRAPPER: wine64
-      _CONTRIB_URL: https://artifacts.videolan.org/vlc/win64-llvm/
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up environment
-      run: |
-        echo "LOCAL_INSTALL_DIR=$(pwd)/${_TRIPLET}" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=${LOCAL_INSTALL_DIR}/lib/pkgconfig" >> $GITHUB_ENV
-        echo "PKGCONFIG=pkg-config" >> $GITHUB_ENV
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y \
-          wine64 \
-          pkg-config \
-          gcc-mingw-w64-x86-64 \
-          g++-mingw-w64-x86-64 \
-          mingw-w64-tools \
-          git \
-          curl \
-          bzip2 \
-          perl \
-          nasm \
-          yasm \
-          autoconf \
-          automake \
-          libtool \
-          make \
-          gcc \
-          binutils-mingw-w64-x86-64
-        
-    - name: Download and extract contribs
-      run: |
-        set -x
-        curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-${_TRIPLET}-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
-        curl -f -o vlc-contrib-${_TRIPLET}-latest.tar.bz2 ${_CONTRIB_URL}${CONTRIB_NAME}
-        bunzip2 vlc-contrib-${_TRIPLET}-latest.tar.bz2
-        tar xvf vlc-contrib-${_TRIPLET}-latest.tar
-        perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
-    
-    - name: Clone and build FFmpeg
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${FFMPEG_URL} ffmpeg
-        cd ffmpeg
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
-          --enable-pic \
-          --disable-debug \
-          --extra-ldflags="-static" \
-          --disable-programs \
-          --disable-doc \
-          --disable-avdevice \
-          --disable-avfilter \
-          --disable-network \
-          --disable-encoders \
-          --disable-muxers \
-          --enable-gpl \
-          --enable-version3
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-
-        
-    - name: Clone and build gpac
-      run: |
-        set -x
-        git clone --depth 1 --branch master https://github.com/gpac/gpac.git gpac
-        cd gpac
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
-          --target-os="${_TRIPLET}" \
-          --cross-prefix="${_TRIPLET}-" \
-          --disable-shared \
-          --enable-static
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Clone and build L-SMASH
-      run: |
-        set -x
-        git clone --depth 1 --branch master ${LSMASH_URL} lsmash
-        cd lsmash
-        ./configure --prefix="${LOCAL_INSTALL_DIR}" \
-          --target-os="${_TRIPLET}" \
-          --cross-prefix="${_TRIPLET}-"
-        make -j$(nproc)
-        make -j$(nproc) install
-        cd ..
-    
-    - name: Build x264
-      run: |
-        set -x
-        ./configure \
-          --host="${_TRIPLET}" \
-          --cross-prefix="${_TRIPLET}-" \
-          --enable-pic \
-          --enable-strip \
-          --prefix="${LOCAL_INSTALL_DIR}" \
-          --bit-depth=8
-        make -j$(nproc)
-        make -j$(nproc) install
-    
-    
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: x264-win64-binaries
-        path: |
-          ${{ env.LOCAL_INSTALL_DIR }}/bin/x264${{ env._PLATFORMSUFFIX }}
           ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
           ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
         retention-days: 5
