@@ -105,9 +105,9 @@ jobs:
     - name: Build x264
       run: |
         set -x
-        export CFLAGS="-I${LOCAL_INSTALL_DIR}/include"
-        export LDFLAGS="-L${LOCAL_INSTALL_DIR}/lib"
-        export PKG_CONFIG_PATH="${LOCAL_INSTALL_DIR}/lib/pkgconfig"
+        export CFLAGS="-I/home/runner/work/x264/x264/i686-w64-mingw32/include"
+        export LDFLAGS="-L/home/runner/work/x264/x264/i686-w64-mingw32/lib"
+        export PKG_CONFIG_PATH="/home/runner/work/x264/x264/i686-w64-mingw32/lib/pkgconfig"
         ./configure \
           --host="${_TRIPLET}" \
           --cross-prefix="${_TRIPLET}-" \
