@@ -131,6 +131,3 @@ jobs:
           ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
           ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
         retention-days: 5
-          ${{ env.LOCAL_INSTALL_DIR }}/lib/libx264.a
-          ${{ env.LOCAL_INSTALL_DIR }}/include/x264*.h
-        retention-days: 5
