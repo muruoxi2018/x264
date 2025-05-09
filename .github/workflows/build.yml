@@ -58,9 +58,11 @@ jobs:
       run: |
         set -x
         curl -f -o vlc-contrib.txt ${_CONTRIB_URL}
-        CONTRIB_NAME=$(sed -n -e 's@.*href="\(vlc-contrib-${_TRIPLET}-[^"]*\.tar\.bz2\)".*@\1@p' vlc-contrib.txt | sed -n -e '1p')
+        CONTRIB_NAME=$(sed -n -e "s@.*href=\"\(vlc-contrib-i686-w64-mingw32-[^\"]*\.tar\.bz2\)\".*@\1@p" vlc-contrib.txt | sed -n -e '1p')
         if [ -z "$CONTRIB_NAME" ]; then
           echo "Error: Failed to extract contrib file name from vlc-contrib.txt"
+          echo "Debug: vlc-contrib.txt content:"
+          cat vlc-contrib.txt
           exit 1
         fi
         curl -f -o ${CONTRIB_NAME} ${_CONTRIB_URL}${CONTRIB_NAME}
