@@ -88,6 +88,11 @@ jobs:
     - name: Clone and build L-SMASH
       run: |
         set -x
+        curl -f -o vlc-contrib-x86_64-w64-mingw32-latest.tar.bz2 \
+            https://artifacts.videolan.org/vlc/win64-llvm/vlc-contrib-x86_64-w64-mingw32-3932c3d31da839ce0a4cc2a944e9095ad77d407b.tar.bz2
+        bunzip2 vlc-contrib-x86_64-w64-mingw32-latest.tar.bz2
+        tar xvf vlc-contrib-x86_64-w64-mingw32-latest.tar
+        perl -pi -e "s'@@CONTRIB_PREFIX@@'$(sed -e "s/'/\\\\'/g" <<< "${LOCAL_INSTALL_DIR}")'g" ${PKG_CONFIG_LIBDIR}/*.pc
         git clone --depth 1 --branch master ${LSMASH_URL} lsmash
         cd lsmash
         ./configure --prefix="${LOCAL_INSTALL_DIR}" \
